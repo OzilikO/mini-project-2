@@ -315,9 +315,7 @@ function handleVoiceResponse(isHttpOk, data) {
 
   if (action === 'create' && data.data && data.data.created_item) {
     const createdItem = data.data.created_item;
-    // Visually pop the form modal briefly to show user verification
-    popCreateVerification(createdItem);
-    // Refresh catalog and highlight the new card
+    // Directly refresh catalog and highlight the newly created card
     fetchItems(createdItem.id);
   } else if (action === 'checkout' || action === 'return' || action === 'delete') {
     fetchItems(data.data ? data.data.item_id : null);
@@ -351,23 +349,6 @@ function handleVoiceResponse(isHttpOk, data) {
   } else {
     fetchItems();
   }
-}
-
-function popCreateVerification(item) {
-  modalTitle.textContent = 'Voice Created Item';
-  itemTitleInput.value = item.title || '';
-  itemAuthorInput.value = item.author || '';
-  itemTypeSelect.value = item.type || 'book';
-  updateDynamicField(item.type, item.type === 'book' ? item.page_count : item.duration);
-  modalItemId.value = item.id || '';
-
-  // Pop modal
-  itemModal.style.display = 'flex';
-
-  // Automatically unpop after 1.8 seconds
-  setTimeout(() => {
-    closeModal();
-  }, 1800);
 }
 
 function resetVoiceUI(customDetail = null) {
@@ -737,3 +718,4 @@ itemModal.addEventListener('click', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   fetchItems();
 });
+
