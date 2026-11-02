@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice-Activated Library Management System</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div>
+          <h1 class="app-title">Library Management System</h1>
+          <p class="app-subtitle">Manage your books and DVDs in one place with Azure Voice Activation.</p>
+        </div>
+        <div class="header-badge">
+          <span class="azure-badge">
+            <span class="pulse-dot"></span> Azure Speech Powered
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Voice Command Action Panel / Status Bar -->
+    <section class="voice-panel" id="voicePanel">
+      <div class="voice-panel-main">
+        <!-- Circular Mic Button with Animated Pulse Rings -->
+        <div class="mic-container">
+          <button type="button" id="micBtn" class="mic-button" title="Click or hold to speak" aria-label="Microphone">
+            <span class="mic-ring ring-1"></span>
+            <span class="mic-ring ring-2"></span>
+            <svg class="mic-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Voice Status & Prompt Text -->
+        <div class="voice-info">
+          <div class="voice-status-line">
+            <span id="voiceStatusBadge" class="voice-status-badge idle">Ready</span>
+            <span id="voiceStatusDetail" class="voice-status-detail">Click mic or hold to speak</span>
+          </div>
+          <div id="voiceTranscript" class="voice-transcript">
+            Listening... Try: "Create item, type book..." or "Check out item 3"
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Command Suggestions Pills -->
+      <div class="voice-quick-commands">
+        <span class="quick-label">Voice tips:</span>
+        <button type="button" class="quick-chip" data-cmd="Check out item 3">"Check out item 3"</button>
+        <button type="button" class="quick-chip" data-cmd="Return item 3">"Return item 3"</button>
+        <button type="button" class="quick-chip" data-cmd="Show available books">"Show available books"</button>
+        <button type="button" class="quick-chip" data-cmd="list DVDs">"list DVDs"</button>
+        <button type="button" class="quick-chip" data-cmd="show all items">"show all items"</button>
+        <button type="button" class="quick-chip" data-cmd="Create item, type book, title The Catcher in the Rye, author J.D. Salinger, pages 220">"Create item, type book..."</button>
+      </div>
+
+      <!-- Fallback / Simulated Text Voice Input -->
+      <div class="voice-fallback-bar">
+        <input type="text" id="voiceTextInput" class="voice-input" placeholder="Or type a spoken command to test (e.g. 'Check out item 2' or 'Show available books')...">
+        <button type="button" id="voiceSendBtn" class="btn btn-voice-send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          Speak & Run
+        </button>
+      </div>
+    </section>
+
+    <!-- Toolbar: Filters, Toggle, and Add Button -->
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <label class="toggle-switch-container">
+          <input type="checkbox" id="availableToggle" class="toggle-checkbox">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Available Only</span>
+        </label>
+      </div>
+
+      <div class="toolbar-center">
+        <div class="segmented-control" role="tablist">
+          <button type="button" class="segment-btn active" data-type="all">All</button>
+          <button type="button" class="segment-btn" data-type="book">Books</button>
+          <button type="button" class="segment-btn" data-type="dvd">DVDs</button>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <button type="button" id="openAddModalBtn" class="btn btn-primary">
+          <span class="plus-icon">+</span> Add New Item
+        </button>
+      </div>
+    </section>
+
+    <!-- Alert / Error Banner (Standard REST errors) -->
+    <aside id="alertBanner" class="alert-banner" style="display: none;" role="alert">
+      <div class="alert-left">
+        <span class="alert-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </span>
+        <span id="alertMessage" class="alert-message">Cannot delete a checked-out item</span>
+      </div>
+      <button type="button" id="dismissAlertBtn" class="alert-dismiss" aria-label="Dismiss alert">&times;</button>
+    </aside>
+
+    <!-- Items Section Header -->
+    <div class="items-header">
+      <h2 class="items-title">Library items</h2>
+      <span id="itemsCount" class="items-count">0 items</span>
+    </div>
+
+    <!-- Items Grid Container -->
+    <main id="itemsGrid" class="items-grid">
+      <!-- Item cards rendered dynamically -->
+    </main>
+
+    <!-- Empty State -->
+    <section id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-state-card">
+        <div class="empty-icon-circle">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <h3 class="empty-title">No items found in the library.</h3>
+        <p class="empty-subtitle">Add your first book or DVD, or say "Create item..." to get started.</p>
+        <button type="button" id="emptyAddBtn" class="btn btn-primary">
+          <span class="plus-icon">+</span> Add New Item
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="itemModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Add New Item</h3>
+        <button type="button" id="closeModalBtn" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      
+      <form id="itemForm" class="modal-form" novalidate>
+        <input type="hidden" id="modalItemId">
+
+        <div class="form-group">
+          <label for="itemTitleInput" class="form-label">Title</label>
+          <input type="text" id="itemTitleInput" class="form-input" placeholder="e.g. The Catcher in the Rye" required>
+        </div>
+
+        <div class="form-group">
+          <label for="itemAuthorInput" class="form-label">Author / Director</label>
+          <input type="text" id="itemAuthorInput" class="form-input" placeholder="e.g. J. D. Salinger" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <label for="itemTypeSelect" class="form-label">Media Type</label>
+            <div class="select-wrapper">
+              <select id="itemTypeSelect" class="form-select">
+                <option value="book">Book</option>
+                <option value="dvd">DVD</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-col" id="dynamicFieldCol">
+            <label for="itemDynamicInput" id="dynamicFieldLabel" class="form-label">Page Count</label>
+            <input type="number" id="itemDynamicInput" class="form-input" min="1" placeholder="220" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancelModalBtn" class="btn btn-cancel">Cancel</button>
+          <button type="submit" id="saveItemBtn" class="btn btn-modal-save">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dynamic Floating Librarian Spoken Response Banner (Bottom Center) -->
+  <div id="librarianBanner" class="librarian-banner" style="display: none;" role="status">
+    <div class="librarian-banner-inner">
+      <div class="librarian-speaker-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+      </div>
+      <div class="librarian-content">
+        <span class="librarian-tag">Librarian Response</span>
+        <p id="librarianSpokenText" class="librarian-text">Successfully created book 'The Catcher in the Rye' with ID 3.</p>
+      </div>
+      <div class="librarian-actions">
+        <button type="button" id="librarianReplayBtn" class="btn-librarian-action" title="Replay voice audio" aria-label="Replay Audio">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <button type="button" id="dismissLibrarianBtn" class="btn-librarian-action" title="Dismiss" aria-label="Dismiss">&times;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Element for instant audio reply -->
+  <audio id="librarianAudioPlayer" preload="auto"></audio>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
